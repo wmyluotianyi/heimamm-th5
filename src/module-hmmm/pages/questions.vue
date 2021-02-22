@@ -86,7 +86,7 @@
           <el-col :span="6">
             <el-form-item style="text-align:right">
               <el-button @click="clear()">清除</el-button>
-              <el-button type="primary">搜索</el-button>
+              <el-button type="primary" @click="filter()">搜索</el-button>
             </el-form-item>
           </el-col>
         </el-row>
@@ -104,8 +104,7 @@
         <el-table-column label="目录" prop="catalog"></el-table-column>
         <el-table-column label="题型">
           <template slot-scope="scope">
-            <!-- {{questionType.find(item=>item.value===+scope.row.questionType).label}} -->
-            {{ scope.row.questionType }}
+            {{ questionType.find(item=>item.value===parseInt(scope.row.questionType)).label }}
           </template>
         </el-table-column>
         <el-table-column label="题干" width="280px">
@@ -120,21 +119,33 @@
         </el-table-column>
         <el-table-column label="难度">
           <template slot-scope="scope">
-            <!-- {{difficulty.find(item=>item.value===+scope.row.difficulty).label}} -->
-            {{ scope.row.difficulty }}
+            {{difficulty.find(item=>item.value===parseInt(scope.row.difficulty)).label}}
           </template>
         </el-table-column>
         <el-table-column label="录入人" prop="creator"></el-table-column>
         <el-table-column label="操作" width="180px">
-          <template>
-            <el-button plain type="primary" size="small" circle icon="el-icon-view" title="预览"></el-button>
-            <el-button plain type="success" size="small" circle icon="el-icon-edit" title="修改"></el-button>
-            <el-button plain type="danger" size="small" circle icon="el-icon-delete" title="删除"></el-button>
-            <el-button plain type="warning" size="small" circle icon="el-icon-check" title="加入精选"></el-button>
+          <template slot-scope="scope">
+            <el-button plain type="primary" size="small" circle icon="el-icon-view" title="预览" @click="openPreviewDialog(scope.row)"></el-button>
+            <el-button plain type="success" size="small" circle icon="el-icon-edit" title="修改" @click="$router.push(`new?id=${scope.row.id}`)"></el-button>
+            <el-button plain type="danger" size="small" circle icon="el-icon-delete" title="删除" @click="delQuestion(scope.row)"></el-button>
+            <el-button plain type="warning" size="small" circle icon="el-icon-check" title="加入精选" @click="addChoice(scope.row)"></el-button>
           </template>
         </el-table-column>
       </el-table>
+      <!-- 分页 -->
+      <el-pagination
+        style="margin-top:20px;text-align:right"
+        background
+        layout="prev, pager, next, sizes, jumper"
+        :total="total"
+        :page-size="requestParams.pagesize"
+        :current-page="requestParams.page"
+        @current-change="pager"
+        :page-sizes="[5,10,20,50]"
+        @size-change="handleSizeChange"
+      ></el-pagination>
     </el-card>
+    <questions-preview ref="questionPreview" :data="questionInfo"></questions-preview>
   </div>
 </template>
 
@@ -145,12 +156,18 @@ import { simple as tagList } from '@/api/hmmm/tags'
 import { questionType, difficulty, direction } from '@/api/hmmm/constants'
 import { simple as userList } from '@/api/base/users'
 import { provinces as getCity, citys as getArea } from '@/api/hmmm/citys'
-import { list as questionList } from '@/api/hmmm/questions'
+import { list as questionList, remove as questionDel, choiceAdd } from '@/api/hmmm/questions'
+import QuestionsPreview from '../components/questions-preview'
 export default {
   name: 'questions',
+  components: {
+    QuestionsPreview
+  },
   data () {
     return {
       total: 0,
+      questionType,
+      difficulty,
       requestParams: {
         subjectID: null,
         catalogID: null,
@@ -163,7 +180,9 @@ export default {
         remarks: null,
         shortName: null,
         province: null,
-        city: null
+        city: null,
+        page: 1,
+        pagesize: 5
       },
       // 学科
       subjectOptions: [],
@@ -184,7 +203,8 @@ export default {
       // 地区
       areaOptions: [],
       // 表格数据
-      questions: []
+      questions: [],
+      questionInfo: {}
     }
   },
   async created () {
@@ -194,6 +214,8 @@ export default {
     // 获取用户下拉列表
     const result = await userList()
     this.userOptions = result.data
+    // console.log(this.questionType)
+    // console.log(this.requestParams.questionType)
     // 加载数据列表
     this.getList()
   },
@@ -224,9 +246,50 @@ export default {
     },
     async getList () {
       const res = await questionList(this.requestParams)
-      console.log(res)
+      // console.log(res)
       this.questions = res.data.items
       this.total = res.data.counts
+    },
+    handleSizeChange (size) {
+      this.requestParams.page = 1
+      this.requestParams.pagesize = size
+      this.getList()
+    },
+    pager (np) {
+      this.requestParams.page = np
+      this.getList()
+    },
+    filter () {
+      this.requestParams.page = 1
+      this.getList()
+    },
+    openPreviewDialog (questionInfo) {
+      this.questionInfo = questionInfo
+      // console.log(this.questionInfo)
+      // 在created()钩子函数执行的时候DOM 其实并未进行任何渲染，而此时进行DOM操作并无作用，而在created()里使用this.$nextTick()可以等待dom生成以后再来获取dom对象
+      this.$nextTick(() => {
+        this.$refs.questionPreview.open(this.questionInfo.id)
+      })
+    },
+    async delQuestion (question) {
+      await this.$confirm('此操作将永久删除该题目, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+      await questionDel(question)
+      this.$message.success('删除成功')
+      this.getList()
+    },
+    async addChoice (question) {
+      await this.$confirm('此操作将该题目加入精选, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info'
+      })
+      await choiceAdd({ id: question.id, choiceState: 1 })
+      this.$message.success('加入精选成功')
+      this.getList()
     }
   }
 }
