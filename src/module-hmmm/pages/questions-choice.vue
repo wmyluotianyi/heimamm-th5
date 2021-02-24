@@ -154,7 +154,71 @@
         :closable="false"
         show-icon
       ></el-alert>
+      <!-- 列表 -->
+      <el-table :data="questions" class="my-table">
+        <el-table-column label="试题编号" prop="number" width="120px"></el-table-column>
+        <el-table-column label="学科" prop="subject" width="120px"></el-table-column>
+        <el-table-column label="目录" prop="catalog" width="120px"></el-table-column>
+        <el-table-column label="题型" width="120px">
+          <template slot-scope="scope">
+            {{questionType.find(item=>item.value===+scope.row.questionType).label}}
+          </template>
+        </el-table-column>
+        <el-table-column label="题干" width="280px">
+          <template slot-scope="scope">
+            <div v-html="scope.row.question"></div>
+          </template>
+        </el-table-column>
+        <el-table-column label="录入时间" width="180">
+          <template slot-scope="scope">
+            {{scope.row.addDate|parseTimeByString}}
+          </template>
+        </el-table-column>
+        <el-table-column label="难度">
+          <template slot-scope="scope">
+            {{difficulty.find(item=>item.value===+scope.row.difficulty).label}}
+          </template>
+        </el-table-column>
+        <el-table-column label="录入人" prop="creator" width="120px"></el-table-column>
+        <el-table-column label="审核状态" width="120px">
+          <template slot-scope="scope">
+            {{scope.row.chkState|state_chk}}
+          </template>
+        </el-table-column>
+        <el-table-column label="审核意见" prop="chkRemarks" width="150px"></el-table-column>
+        <el-table-column label="审核人" prop="chkUser" width="120px"></el-table-column>
+        <el-table-column label="发布状态" width="150px">
+          <template slot-scope="scope">
+            {{scope.row|state_pub}}
+           </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200px" fixed="right" align="center">
+          <template slot-scope="scope">
+            <el-button class="fs" type="text"  @click="openPreviewDialog(scope.row)">预览</el-button>
+            <el-button class="fs" type="text" :disabled="scope.row.chkState!==0" @click="openCheckDialog(scope.row)">审核</el-button>
+            <el-button class="fs" type="text" :disabled="scope.row.publishState===1" @click="$router.push(`new?id=${scope.row.id}`)">修改</el-button>
+            <el-button class="fs" type="text" @click="togglePublish(scope.row)">{{scope.row.publishState===1?'下架':'上架'}}</el-button>
+            <el-button class="fs" type="text" :disabled="scope.row.publishState===1" @click="delQuestion(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!-- 分页 -->
+      <el-pagination
+        style="margin-top:20px;text-align:right"
+        background
+        layout="prev, pager, next, sizes, jumper"
+        :total="total"
+        :page-size="requestParams.pagesize"
+        :current-page="requestParams.page"
+        @current-change="pager"
+        :page-sizes="[5,10,20,50]"
+        @size-change="handleSizeChange"
+      ></el-pagination>
       </el-card>
+      <!-- 预览 -->
+    <questions-preview ref="questionPreview" :data="questionInfo"></questions-preview>
+    <!-- 审核 -->
+    <questions-check ref="questionCheck" :data="questionInfo" @updateList="getList()"></questions-check>
   </div>
 </template>
 
@@ -165,8 +229,14 @@ import { simple as userList } from '@/api/base/users'
 import { difficulty, questionType, direction } from '@/api/hmmm/constants'
 import { simple as tagList } from '@/api/hmmm/tags'
 import { provinces as getCity, citys as getArea } from '@/api/hmmm/citys'
-import { choice as questionList } from '@/api/hmmm/questions'
+import { choice as questionList, choicePublish, remove as questionDel } from '@/api/hmmm/questions'
+import QuestionsPreview from '../components/questions-preview'
+import QuestionsCheck from '../components/questions-check'
 export default {
+  components: {
+    QuestionsPreview,
+    QuestionsCheck
+  },
   filters: {
     state_chk (val) {
       if (val === 0) return '待审核'
@@ -189,7 +259,6 @@ export default {
       questionType,
       difficulty,
       total: 0,
-      // 注意：如果响应响应式数据 先声明
       questions: [],
       requestParams: {
         subjectID: null,
@@ -278,6 +347,39 @@ export default {
     handleCity (cityName) {
       this.requestParams.city = null
       this.areaOptions = getArea(cityName)
+    },
+    openPreviewDialog (questionInfo) {
+      this.questionInfo = questionInfo
+      this.$nextTick(() => {
+        this.$refs.questionPreview.open()
+      })
+    },
+    openCheckDialog (questionInfo) {
+      this.questionInfo = questionInfo
+      this.$nextTick(() => {
+        this.$refs.questionCheck.open()
+      })
+    },
+    async togglePublish (question) {
+      await this.$confirm(`您确认${question.publishState === 1 ? '下架' : '上架'}这道题目吗?`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+      question.publishState = question.publishState === 1 ? 0 : 1
+      await choicePublish(question)
+      this.$message.success(`${question.publishState === 1 ? '上架' : '下架'}成功`)
+      this.getList()
+    },
+    async delQuestion (question) {
+      await this.$confirm('此操作将永久删除该题目, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+      await questionDel(question)
+      this.$message.success('删除成功')
+      this.getList()
     }
   }
 }
