@@ -94,6 +94,7 @@
       </div>
     </el-card>
     <!-- 新增学科 -->
+<<<<<<< HEAD
     <el-dialog
       title="新增学科"
       :visible.sync="dialogVisible"
@@ -114,20 +115,49 @@
             v-model="subject.addSubjectName"
           ></el-input> </el-form-item
         ><br />
+=======
+    <el-dialog title="新增学科" :visible.sync="dialogVisible" width="30%">
+      <el-form label-width="80px" :model="addSubject" :rules="subjectRules" ref="addSubjectRef" size="small"
+        :inline="true">
+        <el-form-item label="学科名称" prop="subjectName">
+          <el-input style="200px" v-model="addSubject.subjectName" placeholder="请输入学科名称"></el-input>
+        </el-form-item><br>
+>>>>>>> 6c77e8d6677a815a6f4701d02c27882666f10d5d
         <el-form-item label="是否显示">
-          <el-switch v-model="subject.isFrontDisplay"></el-switch>
+          <el-switch :active-value='1' :inactive-value="0" v-model="addSubject.isFrontDisplay"></el-switch>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="addSubject">确 定</el-button>
+        <el-button type="primary" @click="addSub">确 定</el-button>
+      </span>
+    </el-dialog>
+    <!-- 修改 -->
+    <el-dialog title="新增学科" :visible.sync="show" width="30%">
+      <el-form label-width="80px" ref="editRef" :model="editObj" size="small" :inline="true">
+        <el-form-item label="学科名称">
+          <el-input style="200px" v-model="editObj.subjectName" placeholder="请输入学科名称"></el-input>
+        </el-form-item><br>
+        <el-form-item label="是否显示">
+          <el-switch :active-value='1' :inactive-value="0" v-model="editObj.isFrontDisplay"></el-switch>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="show = false">取 消</el-button>
+        <el-button type="primary" @click="editSub">确 定</el-button>
       </span>
     </el-dialog>
   </div>
 </template>
 
 <script>
-import { list, add, remove, update } from '@/api/hmmm/subjects.js'
+import {
+  list,
+  add,
+  remove,
+  detail,
+  update
+} from '@/api/hmmm/subjects.js'
 export default {
   name: 'subject',
   data () {
@@ -144,28 +174,45 @@ export default {
       total: 0,
       // 添加新学科的弹窗默认隐藏
       dialogVisible: false,
+      // 编辑
+      show: false, // 显示弹窗
+      editObj: { // 传入的对象
+        subjectName: '',
+        isFrontDisplay: 1
+      },
       // 添加弹窗
-      subject: {
-        addSubjectName: '',
+      addSubject: {
+        subjectName: 'zhangsan',
         // 是否显示
         isFrontDisplay: 1
       },
-      // 验证规则
+      editObj: {
+
+        subjectName: null,
+        // 是否显示
+        isFrontDisplay: 1
+      },
+      // 添加的验证规则
       subjectRules: {
-        subjectName: [
-          {
-            required: true,
-            message: '请输入学科名称',
-            trigger: 'blur'
-          }
-        ]
+        subjectName: [{
+          required: true,
+          message: '请输入学科名称',
+          tirgger: 'blur'
+        }],
+        isFrontDisplay: [{
+          type: 'number',
+          message: '请选择是否显示',
+          tirgger: 'blur'
+        }]
       }
     }
   },
   methods: {
     // 获取所有的数据
     async getSubjectsList () {
-      const { data: res } = await list(this.reqParams)
+      const {
+        data: res
+      } = await list(this.reqParams)
       console.log(res)
       this.dataList = res.items
       this.total = res.counts
@@ -186,11 +233,46 @@ export default {
       })
       console.log(obj.id)
       await remove(obj.id)
+      this.$message.success('删除成功')
       this.getSubjectsList()
     },
     // 修改学科
-    edit (obj) {
-      update(obj.id, obj.subjectName)
+    async edit (obj) {
+      this.show = true
+      const resDetail = await detail({
+        id: obj.id,
+        obj: obj
+      })
+      this.editObj = resDetail.data
+    },
+    // 修改提交数据
+    editSub () {
+      update(this.editObj)
+      this.$message.success('修改成功')
+      this.getSubjectsList()
+    },
+    // 分页
+    // 监听pagesize改变的事件
+    handleSizeChange (val) {
+      // 页码发生改变我们需要改变数据
+      this.reqParams.pagesize = val
+      this.getSubjectsList()
+    },
+    // 监听页码值改变的事件
+    handleCurrentChange (val) {
+      this.reqParams.page = val
+      this.getSubjectsList()
+    },
+    // 新增数据
+    addSub () {
+      this.$refs.addSubjectRef.validate(async valid => {
+        if (!valid) return
+        // 调用添加的方法
+        await add(this.addSubject)
+        console.log(this.addSubject)
+        // 关闭对话框，隐藏数据
+        this.dialogVisible = false
+      })
     },
     // 分页
     // 监听pagesize改变的事件
@@ -219,6 +301,10 @@ export default {
       this.$refs.addSubjectRef.resetFields()
       console.log(11111)
     }
+    // 监听表单关闭，重置添加按钮
+    // addSubjectClose() {
+    //   this.$refs.addSubjectRef.resetFields()
+    // }
   },
   created () {
     this.getSubjectsList()
