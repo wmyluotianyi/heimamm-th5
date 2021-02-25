@@ -25,7 +25,11 @@
           </el-form>
         </el-col>
         <el-col :span="6" style="text-align: right">
-          <el-button icon="el-icon-edit" type="success" size="small"
+          <el-button
+          icon="el-icon-edit"
+          type="success"
+          size="small"
+          @click="addArticle()"
             >新增技巧</el-button
           >
         </el-col>
@@ -78,14 +82,24 @@
 
         <el-table-column label="操作" width="200">
           <template slot-scope="scope">
-            <el-button type="text">预览</el-button>
-            <el-button type="text">{{
+
+            <el-button type="text" @click="previewArticle(scope.row)">预览</el-button>
+
+            <el-button type="text" @click="StateFn(scope.row)">{{
               scope.row.state === 1 ? "禁用" : "启用"
             }}</el-button>
-            <el-button type="text" :disabled="scope.row.state === 1"
+
+            <el-button
+            type="text"
+            :disabled="scope.row.state === 1"
+            @click="addArticle(scope.row)"
               >修改</el-button
             >
-            <el-button type="text" :disabled="scope.row.state === 1"
+
+            <el-button
+            type="text"
+            :disabled="scope.row.state === 1||scope.row.totals > 0"
+            @click="delFn(scope.row)"
               >删除</el-button
             >
           </template>
@@ -106,7 +120,10 @@
       >
       </el-pagination>
     </el-card>
-
+    <!-- 新增技巧 -->
+    <articles-add ref="articlesAdd" :data="currArticle" @updateList="updateList()"></articles-add>
+    <!-- 文章预览 -->
+    <articles-preview ref="articlesPreview" :data='currArticle'></articles-preview>
     <!-- 视频预览 -->
     <div class="video-preview" v-if="videoURL">
       <div class="video-close" @click="closevideo()">
@@ -117,10 +134,13 @@
   </div>
 </template>
 <script>
-import { list } from '@/api/hmmm/articles.js'
+import { list, changeState, remove } from '@/api/hmmm/articles.js'
+import ArticlesPreview from '../components/articles-preview'
+import articlesAdd from '../components/articles-add'
 
 export default {
   name: 'ArticlesList',
+  components: { ArticlesPreview, articlesAdd },
   data () {
     return {
       params: {
@@ -130,8 +150,8 @@ export default {
         pagesize: 10 // 一页显示几条
       },
       total: 0, // 文章总共条数
-      articles: [], // 文章数组
-      currArticle: {},
+      articles: [], // 所有的文章数组
+      currArticle: {}, // 文章数组里的每一篇文章
       videoURL: null // 视频地址
     }
   },
@@ -184,6 +204,52 @@ export default {
       this.$nextTick(() => {
         this.$refs.video.play() // 播放视频
       })
+    },
+    // 点击预览按钮预览文章
+    previewArticle (article) {
+      this.currArticle = article
+      //   console.log(this.currArticle)
+      this.$nextTick(() => {
+        this.$refs.articlesPreview.open()
+      })
+    },
+    // 点击切换状态
+    async StateFn (article) {
+      await changeState({
+        id: article.id,
+        state: article.state
+      })
+      this.$message.success('操作成功')
+      //   状态 1 开启 0 屏蔽
+      if (article.state === 1) {
+        article.state = 0
+      } else {
+        article.state = 1
+      }
+    },
+    // 点击删除文章
+    async delFn (article) {
+      await this.$confirm('此操作将永久删除该文章, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'error' // 一个信息提示的图标类型 还有warning info success error
+      })
+      await remove(article)
+      this.$message.success('删除成功')
+      this.getList()
+    },
+    // 新增技巧
+    addArticle (article = {}) {
+      this.currArticle = article
+      this.$nextTick(() => {
+        this.$refs.articlesAdd.open()
+      })
+    },
+    updateList () {
+      if (!this.currArticle.id) {
+        this.params.page = 1
+      }
+      this.getList()
     }
   }
 }
