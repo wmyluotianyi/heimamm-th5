@@ -1,49 +1,26 @@
 <template>
-  <div class="container">
+  <div class='container'>
     <el-card class="box-card">
       <!-- header -->
       <el-row class="header">
         <el-col :span="18">
-          <el-form
-            label-width="80px"
-            :model="reqParams"
-            ref="subjectRef"
-            size="small"
-            :inline="true"
-          >
+          <el-form label-width="80px" :model="reqParams" ref="subjectRef" size="small" :inline="true">
             <el-form-item label="学科名称">
-              <el-input
-                style="200px"
-                v-model="reqParams.subjectName"
-              ></el-input>
+              <el-input style="200px" v-model="reqParams.subjectName"></el-input>
             </el-form-item>
-            <el-form-item style="text-align: right">
+            <el-form-item style="text-align:right">
               <el-button @click="clear">清除</el-button>
-              <el-button type="primary" @click="getSubjectsList"
-                >搜索</el-button
-              >
+              <el-button type="primary" @click="getSubjectsList">搜索</el-button>
             </el-form-item>
           </el-form>
         </el-col>
-        <el-col :span="6" style="text-align: right">
-          <el-button
-            icon="el-icon-edit"
-            type="success"
-            size="small"
-            @click="dialogVisible = true"
-            >新增学科</el-button
-          >
+        <el-col :span="6" style="text-align:right">
+          <el-button icon="el-icon-edit" type="success" size="small" @click="dialogVisible = true">新增学科</el-button>
         </el-col>
       </el-row>
       <!-- 总的数据量 -->
-      <el-alert
-        :title="`数据一共${total}条`"
-        style="margin-bottom: 15px"
-        type="info"
-        class="alert"
-        :closable="false"
-        show-icon
-      >
+      <el-alert :title="`数据一共${total}条`" style="margin-bottom:15px" type="info" class="alert" :closable="false"
+        show-icon>
       </el-alert>
       <!-- table表格 -->
       <el-table :data="dataList">
@@ -52,77 +29,45 @@
         <el-table-column label="创建者" prop="username"></el-table-column>
         <el-table-column label="创建日期" width="160px">
           <template slot-scope="scope">
-            {{ scope.row.addDate }}
+            {{scope.row.addDate}}
           </template>
         </el-table-column>
         <el-table-column label="前台是否显示">
           <template slot-scope="scope">
-            {{ scope.row.isFrontDisplay === 1 ? "是" : "否" }}
+            {{scope.row.isFrontDisplay === 1 ? '是' :'否'}}
           </template>
         </el-table-column>
-        <el-table-column
-          label="二级目录"
-          prop="twoLevelDirectory"
-        ></el-table-column>
+        <el-table-column label="二级目录" prop="twoLevelDirectory"></el-table-column>
         <el-table-column label="标签" prop="tags"></el-table-column>
         <el-table-column label="题目数量" prop="totals"></el-table-column>
         <el-table-column label="操作" width="240px">
           <template slot-scope="scope">
-            <el-button type="text"> 学科分类</el-button>
-            <el-button type="text">学科标签 </el-button>
+            <el-button type="text">
+              学科分类</el-button>
+            <el-button type="text">学科标签
+            </el-button>
             <el-button type="text" @click="edit(scope.row)">修改</el-button>
-            <el-button type="text" @click="deleteSub(scope.row)"
-              >删除</el-button
-            >
+            <el-button type="text" @click="deleteSub(scope.row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
       <!-- 分页 -->
       <!-- current-page当前显示的页码 -->
       <!-- page-size当前每页显示多少条数据 -->
-      <div class="block" style="float: right; margin: 10px 0">
-        <el-pagination
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-          :current-page="reqParams.page"
-          :page-sizes="[5, 10, 15, 20]"
-          :page-size="reqParams.pagesize"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-        >
+      <div class="block" style="float:right; margin:10px 0">
+        <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange"
+          :current-page="reqParams.page" :page-sizes="[5, 10, 15, 20]" :page-size="reqParams.pagesize"
+          layout="total, sizes, prev, pager, next, jumper" :total="total">
         </el-pagination>
       </div>
     </el-card>
     <!-- 新增学科 -->
-<<<<<<< HEAD
-    <el-dialog
-      title="新增学科"
-      :visible.sync="dialogVisible"
-      width="30%"
-      @close="addSubject"
-    >
-      <el-form
-        label-width="80px"
-        :model="subject"
-        :rules="subjectRules"
-        ref="addSubjectRef"
-        size="small"
-        :inline="true"
-      >
-        <el-form-item label="学科名称" prop="subjectName">
-          <el-input
-            style="200px"
-            v-model="subject.addSubjectName"
-          ></el-input> </el-form-item
-        ><br />
-=======
     <el-dialog title="新增学科" :visible.sync="dialogVisible" width="30%">
       <el-form label-width="80px" :model="addSubject" :rules="subjectRules" ref="addSubjectRef" size="small"
         :inline="true">
         <el-form-item label="学科名称" prop="subjectName">
           <el-input style="200px" v-model="addSubject.subjectName" placeholder="请输入学科名称"></el-input>
         </el-form-item><br>
->>>>>>> 6c77e8d6677a815a6f4701d02c27882666f10d5d
         <el-form-item label="是否显示">
           <el-switch :active-value='1' :inactive-value="0" v-model="addSubject.isFrontDisplay"></el-switch>
         </el-form-item>
@@ -183,12 +128,6 @@ export default {
       // 添加弹窗
       addSubject: {
         subjectName: 'zhangsan',
-        // 是否显示
-        isFrontDisplay: 1
-      },
-      editObj: {
-
-        subjectName: null,
         // 是否显示
         isFrontDisplay: 1
       },
@@ -273,34 +212,8 @@ export default {
         // 关闭对话框，隐藏数据
         this.dialogVisible = false
       })
-    },
-    // 分页
-    // 监听pagesize改变的事件
-    handleSizeChange (val) {
-      // 页码发生改变我们需要改变数据
-      this.reqParams.pagesize = val
-      this.getSubjectsList()
-    },
-    // 监听页码值改变的事件
-    handleCurrentChange (val) {
-      this.reqParams.page = val
-      this.getSubjectsList()
-    },
-    // 新增数据
-    addSubject () {
-      this.$refs.addSubjectRef.validate((valid) => {
-        if (!valid) return
-        // 调用添加的方法
-        add(this.subject)
-        // 关闭对话框，隐藏数据
-        this.dialogVisible = false
-      })
-    },
-    // 监听表单关闭，重置添加按钮
-    addSubject () {
-      this.$refs.addSubjectRef.resetFields()
-      console.log(11111)
     }
+
     // 监听表单关闭，重置添加按钮
     // addSubjectClose() {
     //   this.$refs.addSubjectRef.resetFields()
@@ -310,7 +223,9 @@ export default {
     this.getSubjectsList()
   }
 }
+
 </script>
 
 <style lang="scss" scoped>
+
 </style>

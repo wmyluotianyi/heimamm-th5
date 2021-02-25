@@ -127,10 +127,7 @@ export default {
       // 添加弹窗
       dialogVisible: false,
       // 添加标签
-      tagsModel: {
-        subjectID: null,
-        tagName: null
-      },
+
       // 学科目录
       subList: [],
       // 是否显示修改弹窗
